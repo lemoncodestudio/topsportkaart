@@ -337,7 +337,7 @@ function BottomSheet({ isOpen, onClose, selectedRegion, regionData, regionScore,
           }
         `}
         style={{
-          maxHeight: expanded ? 'calc(100vh - 120px)' : 'auto',
+          maxHeight: expanded ? 'calc(100vh - env(safe-area-inset-top, 0px) - 100px)' : 'auto',
         }}
       >
         {/* Clickable Header Area */}
