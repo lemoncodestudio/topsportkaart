@@ -316,7 +316,7 @@ function BottomSheet({ isOpen, onClose, selectedRegion, regionData, regionScore,
       {/* Backdrop - only when expanded */}
       <div
         className={`
-          fixed inset-0 bg-black/20 backdrop-blur-sm z-[998]
+          fixed inset-0 bg-black/20 backdrop-blur-sm z-[1000]
           transition-opacity duration-300
           ${isOpen && expanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
@@ -326,18 +326,14 @@ function BottomSheet({ isOpen, onClose, selectedRegion, regionData, regionScore,
       {/* Sheet */}
       <div
         className={`
-          fixed left-0 right-0 bottom-0 z-[999]
+          fixed left-0 right-0 bottom-0
           bg-white rounded-t-3xl shadow-2xl shadow-black/30
           transition-all duration-300 ease-out
-          ${isOpen
-            ? expanded
-              ? 'translate-y-0'
-              : 'translate-y-0'
-            : 'translate-y-full'
-          }
+          ${isOpen ? 'translate-y-0' : 'translate-y-full'}
+          ${expanded ? 'z-[1001]' : 'z-[999]'}
         `}
         style={{
-          maxHeight: expanded ? 'calc(100vh - 120px)' : 'auto',
+          maxHeight: expanded ? 'calc(100vh - 60px)' : 'auto',
         }}
       >
         {/* Clickable Header Area */}
