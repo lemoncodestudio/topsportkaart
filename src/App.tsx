@@ -300,6 +300,11 @@ interface BottomSheetProps {
 function BottomSheet({ isOpen, onClose, selectedRegion, regionData, regionScore, normalized }: BottomSheetProps) {
   const [expanded, setExpanded] = useState(false);
 
+  // Header height (60px) + small map preview area (80px)
+  const HEADER_HEIGHT = 60;
+  const MAP_PREVIEW_HEIGHT = 80;
+  const TOP_OFFSET = HEADER_HEIGHT + MAP_PREVIEW_HEIGHT;
+
   // Reset expanded state when sheet closes
   useEffect(() => {
     if (!isOpen) {
@@ -313,31 +318,40 @@ function BottomSheet({ isOpen, onClose, selectedRegion, regionData, regionScore,
 
   return (
     <>
-      {/* Backdrop - only when expanded */}
+      {/* Backdrop with map preview - only when expanded */}
       <div
         className={`
-          fixed inset-0 bg-black/20 backdrop-blur-sm z-[998]
+          fixed inset-0 z-[998]
           transition-opacity duration-300
           ${isOpen && expanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
         onClick={() => setExpanded(false)}
-      />
+      >
+        {/* Dark blurred overlay for the map preview area */}
+        <div
+          className="absolute left-0 right-0 bg-black/40 backdrop-blur-sm"
+          style={{
+            top: HEADER_HEIGHT,
+            height: MAP_PREVIEW_HEIGHT
+          }}
+        />
+      </div>
 
       {/* Sheet */}
       <div
         className={`
-          fixed left-0 right-0 bottom-0 z-[999]
+          fixed left-0 right-0 z-[999]
           bg-white rounded-t-3xl shadow-2xl shadow-black/30
           transition-all duration-300 ease-out
           ${isOpen
-            ? expanded
-              ? 'translate-y-0'
-              : 'translate-y-0'
+            ? 'translate-y-0'
             : 'translate-y-full'
           }
         `}
         style={{
-          maxHeight: expanded ? 'calc(100vh - env(safe-area-inset-top, 0px) - 100px)' : 'auto',
+          top: expanded ? TOP_OFFSET : 'auto',
+          bottom: expanded ? 0 : 0,
+          maxHeight: expanded ? `calc(100vh - ${TOP_OFFSET}px)` : 'auto',
         }}
       >
         {/* Clickable Header Area */}
