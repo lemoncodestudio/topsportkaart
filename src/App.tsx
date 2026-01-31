@@ -299,9 +299,6 @@ interface BottomSheetProps {
 
 function BottomSheet({ isOpen, onClose, selectedRegion, regionData, regionScore, normalized }: BottomSheetProps) {
   const [expanded, setExpanded] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const dragStartY = useRef<number>(0);
-  const currentTranslate = useRef<number>(0);
 
   // Reset expanded state when sheet closes
   useEffect(() => {
@@ -310,148 +307,127 @@ function BottomSheet({ isOpen, onClose, selectedRegion, regionData, regionScore,
     }
   }, [isOpen]);
 
-  const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    dragStartY.current = clientY;
-    if (sheetRef.current) {
-      sheetRef.current.style.transition = 'none';
-    }
-  };
-
-  const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
-    if (dragStartY.current === 0) return;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const delta = clientY - dragStartY.current;
-
-    if (expanded) {
-      // When expanded, only allow dragging down
-      if (delta > 0) {
-        currentTranslate.current = delta;
-        if (sheetRef.current) {
-          sheetRef.current.style.transform = `translateY(${delta}px)`;
-        }
-      }
-    } else {
-      // When collapsed, allow dragging up to expand or down to close
-      currentTranslate.current = delta;
-      if (sheetRef.current) {
-        if (delta < 0) {
-          // Dragging up - resist a bit
-          sheetRef.current.style.transform = `translateY(${delta * 0.3}px)`;
-        } else {
-          sheetRef.current.style.transform = `translateY(${delta}px)`;
-        }
-      }
-    }
-  };
-
-  const handleDragEnd = () => {
-    if (sheetRef.current) {
-      sheetRef.current.style.transition = 'transform 0.3s ease-out';
-      sheetRef.current.style.transform = '';
-    }
-
-    const threshold = 80;
-
-    if (expanded) {
-      // If dragged down enough, collapse or close
-      if (currentTranslate.current > threshold) {
-        if (currentTranslate.current > threshold * 2) {
-          onClose();
-        } else {
-          setExpanded(false);
-        }
-      }
-    } else {
-      // If dragged up enough, expand; if down enough, close
-      if (currentTranslate.current < -threshold) {
-        setExpanded(true);
-      } else if (currentTranslate.current > threshold) {
-        onClose();
-      }
-    }
-
-    dragStartY.current = 0;
-    currentTranslate.current = 0;
+  const toggleExpanded = () => {
+    setExpanded(!expanded);
   };
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - only when expanded */}
       <div
         className={`
           fixed inset-0 bg-black/20 backdrop-blur-sm z-[998]
           transition-opacity duration-300
-          ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}
+          ${isOpen && expanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}
         `}
-        onClick={onClose}
+        onClick={() => setExpanded(false)}
       />
 
       {/* Sheet */}
       <div
-        ref={sheetRef}
         className={`
           fixed left-0 right-0 bottom-0 z-[999]
           bg-white rounded-t-3xl shadow-2xl shadow-black/30
-          transition-transform duration-300 ease-out
+          transition-all duration-300 ease-out
           ${isOpen
             ? expanded
               ? 'translate-y-0'
-              : 'translate-y-[calc(100%-220px)]'
+              : 'translate-y-0'
             : 'translate-y-full'
           }
         `}
-        style={{ maxHeight: 'calc(100vh - 120px)' }}
+        style={{
+          maxHeight: expanded ? 'calc(100vh - 120px)' : 'auto',
+        }}
       >
-        {/* Drag Handle */}
+        {/* Clickable Header Area */}
         <div
-          className="pt-3 pb-2 cursor-grab active:cursor-grabbing"
-          onTouchStart={handleDragStart}
-          onTouchMove={handleDragMove}
-          onTouchEnd={handleDragEnd}
-          onMouseDown={handleDragStart}
-          onMouseMove={handleDragMove}
-          onMouseUp={handleDragEnd}
-          onMouseLeave={handleDragEnd}
+          className="cursor-pointer select-none"
+          onClick={toggleExpanded}
         >
-          <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto" />
-        </div>
+          {/* Handle Bar */}
+          <div className="pt-3 pb-2">
+            <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto" />
+          </div>
 
-        {/* Content */}
-        <div className={`overflow-hidden ${expanded ? 'overflow-y-auto' : ''}`} style={{ maxHeight: 'calc(100vh - 160px)' }}>
           {selectedRegion && (
-            <div className="px-5 pb-6">
+            <div className="px-5 pb-4">
               {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
                   <h2 className="text-xl font-semibold text-gray-900 tracking-tight">{selectedRegion}</h2>
                   <p className="text-[13px] text-gray-500 mt-0.5">
                     {regionData.length} {regionData.length === 1 ? 'item' : 'items'}
                   </p>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="p-2 -mr-2 rounded-full hover:bg-gray-100 transition-colors"
-                >
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Score Card */}
-              <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-5 mb-5 shadow-xl shadow-gray-900/20">
-                <div className="text-[13px] text-gray-400 uppercase tracking-wide mb-1">Score</div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-white tracking-tight">
-                    {regionScore.toFixed(normalized ? 1 : 0)}
-                  </span>
-                  <span className="text-[13px] text-gray-400">
-                    {normalized ? 'per 100k' : 'punten'}
-                  </span>
+                <div className="flex items-center gap-2">
+                  {/* Expand/Collapse Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleExpanded();
+                    }}
+                    className={`
+                      p-2 rounded-full transition-all duration-200
+                      ${expanded ? 'bg-gray-100 rotate-180' : 'bg-blue-50 hover:bg-blue-100'}
+                    `}
+                  >
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  </button>
+                  {/* Close Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                    }}
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                  >
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               </div>
 
+              {/* Score Card - Always visible */}
+              <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-4 mt-4 shadow-xl shadow-gray-900/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] text-gray-400 uppercase tracking-wide mb-0.5">Score</div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold text-white tracking-tight">
+                        {regionScore.toFixed(normalized ? 1 : 0)}
+                      </span>
+                      <span className="text-[12px] text-gray-400">
+                        {normalized ? 'per 100k' : 'punten'}
+                      </span>
+                    </div>
+                  </div>
+                  {!expanded && regionData.length > 0 && (
+                    <div className="flex items-center gap-1 text-[11px] text-blue-400">
+                      <span>Toon details</span>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Expandable Content */}
+        <div
+          className={`
+            overflow-hidden transition-all duration-300 ease-out
+            ${expanded ? 'max-h-[60vh] overflow-y-auto' : 'max-h-0'}
+          `}
+        >
+          {selectedRegion && (
+            <div className="px-5 pb-6">
               {/* Entries List */}
               {regionData.length > 0 ? (
                 <div className="space-y-2">
@@ -490,18 +466,6 @@ function BottomSheet({ isOpen, onClose, selectedRegion, regionData, regionScore,
             </div>
           )}
         </div>
-
-        {/* Expand Hint (when collapsed) */}
-        {!expanded && regionData.length > 0 && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none">
-            <div className="flex items-center gap-1 text-[11px] text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-              <span>Swipe omhoog voor meer</span>
-            </div>
-          </div>
-        )}
       </div>
     </>
   );
